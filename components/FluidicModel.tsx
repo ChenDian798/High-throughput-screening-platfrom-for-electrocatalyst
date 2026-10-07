@@ -13,8 +13,8 @@ function DeliveryCamera({ view,p }: { view:Pick<ViewSettings,'camera'>;p:Machine
   const {camera,controls,size}=useThree();
   const inlet=deliveryInlet(p);
   useEffect(()=>{
-    const center=new THREE.Vector3(inlet[0]/2-5,p.depth+7,-18);
-    const distance=Math.max(1,1.25/(size.width/size.height));
+    const center=new THREE.Vector3(inlet[0]/2-5,p.depth+7,-12);
+    const distance=1.05*Math.max(1,1.25/(size.width/size.height));
     const direction=view.camera==='top'?new THREE.Vector3(0,150,.1):view.camera==='side'?new THREE.Vector3(0,17,105):new THREE.Vector3(65,50,85);
     camera.position.copy(center).add(direction.multiplyScalar(distance));camera.lookAt(center);
     if(controls&&'target' in controls) { const orbit=controls as unknown as {target:THREE.Vector3;update:()=>void};orbit.target.copy(center);orbit.update(); }

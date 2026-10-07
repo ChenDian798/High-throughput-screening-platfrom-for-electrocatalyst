@@ -176,7 +176,7 @@ function TubeSegment({ curve,start,end,color,p }: { curve: THREE.CatmullRomCurve
 function CameraController({ view,combined }: { view: ViewSettings;combined:boolean }) {
   const {camera,controls,invalidate,size}=useThree();
   useEffect(()=>{
-    const factor=Math.max(1,1.05/(size.width/size.height));
+    const factor=(combined?.95:1)*Math.max(1,1.05/(size.width/size.height));
     const focus=view.section&&!view.exploded;
     const targetY=focus?3:18;
     const targetX=focus||!combined?0:-10,targetZ=focus||!combined?0:-20;
