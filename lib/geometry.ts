@@ -1,13 +1,15 @@
+import { GAS_DEFAULTS, GasSettings, gasCalculation } from './gas';
 export type Config = {
   volume: number; gasVolume: number; flowRate: number; travelSpeed: number;
   width: number; length: number; depth: number; count: number;
   postWidth: number; postLength: number; clearance: number;
   gas: 'Air' | 'N2' | 'Ar';
+  gasControl: GasSettings;
 };
 export const DEFAULTS: Config = {
   volume: 80, gasVolume: 20, flowRate: 80, travelSpeed: 35,
   width: 8, length: 5, depth: 4, count: 3,
-  postWidth: 6, postLength: 3, clearance: 1, gas: 'Ar'
+  postWidth: 6, postLength: 3, clearance: 1, gas: 'Ar', gasControl: GAS_DEFAULTS
 };
 export const DESIGN = { wall: 2, corner: .6, postCorner: .5, tubeID: 1, boundaryVolume: 4, timeScale: 8 };
 export const COLORS = ['#0072b2', '#d55e00', '#009e73'];
@@ -41,4 +43,5 @@ export function geometryCheck(p: Config, fills: number[]) {
   });
   return { errors, heights, postLength: p.depth - p.clearance, headspace: p.depth - Math.max(...heights) };
 }
-export function segmentLength(volume: number) { return volume / (Math.PI * DESIGN.tubeID ** 2 / 4); }
+export function segmentLength(volume: number, p:Config=DEFAULTS) { return volume / gasCalculation(p.gasControl).area; }
+export function withGasControl(p:Config,g:GasSettings):Config { return {...p,gasControl:g,gasVolume:gasCalculation(g).volume}; }

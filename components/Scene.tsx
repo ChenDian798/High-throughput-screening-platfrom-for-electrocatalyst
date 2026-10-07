@@ -4,9 +4,9 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { COLORS, Config, DESIGN, NAMES, deliveryInlet, liquidHeight, wellX } from '@/lib/geometry';
-import { Machine, status, wastePosition } from '@/lib/machine';
+import { Machine, segmentLayout, status, wastePosition } from '@/lib/machine';
 import { Box, Label } from './ModelPrimitives';
-import { FluidicHardware, WasteReservoir } from './FluidicHardware';
+import { FluidicHardware, GasInjectionHardware, WasteReservoir } from './FluidicHardware';
 
 export type ViewSettings = { camera: 'iso'|'top'|'side'; exploded: boolean; lid: boolean; frame: boolean; opacity: number; section: boolean; labels: boolean; dimensions: boolean };
 const cut = [new THREE.Plane(new THREE.Vector3(0,0,-1),0)];
@@ -149,22 +149,26 @@ export function SegmentedDeliveryTube({ machine }: { machine: Machine }) {
     new THREE.Vector3(x-5,2*p.depth+39,z+p.length/2+15),
     new THREE.Vector3(x,y+4,z+p.length/2+15),new THREE.Vector3(x,y+4,z)
   ]),[p.count,p.width,p.depth,x,y,z]);
-  const capacity=p.count*p.volume+(p.count-1)*(p.gasVolume+2*DESIGN.boundaryVolume);
-  const geometry=useMemo(()=>new THREE.TubeGeometry(curve,96,.35,10,false),[curve]);
+  const geometry=useMemo(()=>deliveryGeometry(curve,p,.35,96),[curve,p.gasControl.geometry,p.gasControl.width,p.gasControl.height]);
   useEffect(()=>()=>geometry.dispose(),[geometry]);
-  const incoming=machine.queue[0]?.kind==='load'?machine.queue[0].segment:null;
-  const segments=incoming?[...machine.segments,{...incoming,volume:incoming.volume*machine.elapsed/machine.queue[0].duration}]:machine.segments;
-  let cursor=1;
+  const segments=segmentLayout(machine);
   return <group>
     <mesh geometry={geometry}><meshStandardMaterial color="#a5bccb" transparent opacity={.18} depthWrite={false}/></mesh>
-    {segments.map((seg,i)=>{const end=cursor;cursor=Math.max(0,cursor-seg.volume/Math.max(1,capacity));return <TubeSegment key={i} curve={curve} start={cursor} end={end} color={COLORS[NAMES.indexOf(seg.kind)]??(seg.kind===p.gas?'#a0aeb8':'#c4ae91')}/>;})}
+    {segments.map(({segment:seg,start,end},i)=><TubeSegment key={i} p={p} curve={curve} start={start} end={end} color={COLORS[NAMES.indexOf(seg.kind)]??(seg.kind===p.gas?'#a0aeb8':'#c4ae91')}/>)}
   </group>;
 }
-function TubeSegment({ curve,start,end,color }: { curve: THREE.CatmullRomCurve3; start:number;end:number;color:string }) {
+function deliveryGeometry(curve:THREE.CatmullRomCurve3,p:Config,radius:number,steps:number) {
+  if(p.gasControl.geometry==='circular') return new THREE.TubeGeometry(curve,steps,radius,10,false);
+  const {width,height}=p.gasControl,scale=radius*2/Math.max(width,height),w=width*scale,h=height*scale;
+  const section=new THREE.Shape();section.moveTo(-w/2,-h/2);section.lineTo(w/2,-h/2);section.lineTo(w/2,h/2);section.lineTo(-w/2,h/2);section.closePath();
+  return new THREE.ExtrudeGeometry(section,{steps,extrudePath:curve,bevelEnabled:false});
+}
+function TubeSegment({ curve,start,end,color,p }: { curve: THREE.CatmullRomCurve3; start:number;end:number;color:string;p:Config }) {
   const geometry=useMemo(()=>{
-    const points=Array.from({length:18},(_,i)=>curve.getPointAt(start+(end-start)*i/17));
-    return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points),18,.21,8,false);
-  },[curve,start,end]);
+    if(end-start<.0001) return new THREE.BufferGeometry();
+    const points=Array.from({length:18},(_,i)=>curve.getPointAt(Math.min(1,Math.max(0,start+(end-start)*i/17))));
+    return deliveryGeometry(new THREE.CatmullRomCurve3(points),p,.21,18);
+  },[curve,start,end,p.gasControl.geometry,p.gasControl.width,p.gasControl.height]);
   useEffect(()=>()=>geometry.dispose(),[geometry]);
   if(end-start<.0001) return null;
   return <mesh geometry={geometry}><meshStandardMaterial color={color} transparent opacity={.85}/></mesh>;
@@ -191,6 +195,7 @@ export default function Scene({ machine,view,combined=false }: { machine: Machin
     <color attach="background" args={['#f5f8fa']}/><ambientLight intensity={1.8}/><directionalLight position={[20,50,30]} intensity={2.5}/><directionalLight position={[-30,15,-10]} intensity={1}/>
     <gridHelper args={[combined?150:110,combined?30:22,'#d5dee5','#e6edf1']} position={combined?[-10,-13,-20]:[0,-4.5,0]}/>
     {combined&&<><FluidicHardware machine={machine} labels={view.labels}/><WasteReservoir machine={machine} labels={view.labels}/></>}
+    {!combined&&<GasInjectionHardware machine={machine} labels={view.labels}/>}
     <SharedWorkingElectrode p={p} view={view}/><InsulatingWellFrame p={p} view={view}/>
     {machine.fills.map((volume,i)=><WellLiquid key={i} p={p} i={i} volume={volume} tip={tip} view={view}/>)}
     <GuidedLid p={p} view={view} lid={machine.lid}/>

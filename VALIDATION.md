@@ -6,7 +6,7 @@ The checks validate this software visualization only; they do not validate hardw
 
 `npm run typecheck`, `npm test` and `npm run build`.
 
-The six controller/geometry tests cover:
+The eleven controller/geometry/gas tests cover:
 
 - Full A/B/C sequence, correct well addresses and usable fills.
 - Gas/boundary discharge only at waste; no dispensing during robot travel.
@@ -18,6 +18,11 @@ The six controller/geometry tests cover:
 - Rejection of overflow, dry protrusions, bottom contact and sidewall interference.
 - One to three active wells with Air, N2 and Ar.
 - Volume-derived segment lengths and default submerged-electrode displacement.
+- Circular and rectangular channel area, explicit μL/s and ms conversions, time-control and target-length modes.
+- Gas-segment growth at the inlet, closing at programmed time, pause freezing injection and liquid/gas non-overlap.
+- Generation stopping before transport, manual dispensing blocked until transport, and whole-train transport preserving segment volumes/order.
+- Calibration from a completed injection snapshot; no default measured values and no retroactive changes to slug volumes.
+- Segment path coordinates remain within spline bounds during fractional creation and transport (floating-point boundary regression).
 
 ## Browser checks
 
@@ -30,7 +35,9 @@ Verified using the Codex in-app Chromium browser (Edge was not exposed by this s
 - Presentation mode enters and exits.
 - Desktop layout and 390 px responsive viewport; no document horizontal overflow. The compact fluidic schematic has its own horizontal scroll region.
 - Five reference links and scoped descriptions are available in Design notes.
-- Section 01 retains the original robot/electrode scene without the upstream reservoirs/pump. Section 02 shows only the fluidic subsystem in 3D (or its 2D schematic). Section 03 separately combines the full system. All views consume the same machine state; pause stops flow and automatic loading still conserves three 80 μL well fills.
+- Section 01 retains the robot/electrode scene with the updated gas module but without the upstream precursor reservoirs/pump. Section 02 shows only the fluidic subsystem in 3D (or its 2D schematic). Section 03 separately combines the full system. All views consume the same machine state.
+- Browser input checks: a 2 s test injection pauses with the valve CLOSED and resumes with OPEN / liquid pump OFF; a manually entered demonstration value exercises calibration without being treated as experimental validation.
+- A 5 mm target with a 1 mm circular ID calculates 3.927 μL and approximately 98.17 ms at 40 μL/s. A 2 × 0.5 mm rectangular channel calculates 5 μL and 125 ms. Generation completes with well dispensing disabled until Transport Train.
 
 ## Geometry inspection
 

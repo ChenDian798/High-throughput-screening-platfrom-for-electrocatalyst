@@ -2,6 +2,7 @@
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { COLORS, NAMES, deliveryInlet } from '@/lib/geometry';
+import { gasCalculation } from '@/lib/gas';
 import { Machine, Position, status, wastePosition } from '@/lib/machine';
 import { Box, Label } from './ModelPrimitives';
 
@@ -44,24 +45,41 @@ export function FluidicHardware({ machine,labels,labelScale=1.4 }: { machine:Mac
     <Box position={[0,2.5,-12]} size={[1.5,1.5,1]} color={st.pump?'#007b79':'#6f8796'}/>
     <Pipe points={[[0,0,-8],[0,0,-5],[0,0,0]]}/>
     <mesh><sphereGeometry args={[.9,20,16]}/><meshStandardMaterial color={st.gas?'#007b79':'#acbdc8'}/></mesh>
-    <Bottle position={[-27,-5,-20]} color="#526e80" gas/>
-    <Pipe points={[[-27,3.8,-20],[-27,5,-14],[-23,5,-10]]} color="#889aa8"/>
-    <mesh position={[-23,5,-10]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[2,2,1,32]}/><meshStandardMaterial color="#eff4f7"/></mesh>
-    <Box position={[-23,5,-9.4]} size={[.2,2.3,.15]} color="#526e80"/>
-    <Pipe points={[[-23,5,-10],[-19,4,-7],[-15,0,0],[-12,0,0]]} color={st.gas?'#007b79':'#889aa8'}/>
-    <Box position={[-12,0,0]} size={[3,2,2]} color={st.gas?'#007b79':'#7e929f'}/>
-    <Box position={[-12,1.7,0]} size={[2,.7,.7]} color={st.gas?'#007b79':'#a9b8c2'}/>
-    <Pipe points={[[-10.5,0,0],[-5,0,0],[0,0,0]]} color={st.gas?'#007b79':'#889aa8'}/>
+    <GasInjectionParts machine={machine} labels={labels} labelScale={labelScale}/>
     {labels&&<>
       <Label scale={labelScale} position={[0,14,-47]}>Precursor reservoirs · A / B / C</Label>
       <Label scale={labelScale} position={[16,1,-28]}>Selector valve</Label>
       <Label scale={labelScale} position={[13,-2,-12]}>Dosing pump · {st.pump?'ON':'OFF'}</Label>
-      <Label scale={labelScale} position={[10,3,0]}>Gas-injection junction</Label>
-      <Label scale={labelScale} position={[-33,3,-24]}>{machine.config.gas} source</Label>
-      <Label scale={labelScale} position={[-33,10,-3]}>Regulator</Label>
-      <Label scale={labelScale} position={[-16,4,6]}>Gas valve · {st.gas?'OPEN':'CLOSED'}</Label>
     </>}
   </group>;
+}
+function GasInjectionParts({machine,labels,labelScale}:{machine:Machine;labels:boolean;labelScale:number}) {
+  const st=status(machine),g=machine.config.gasControl;
+  const travel=st.gas ? .7*Math.sin(Math.PI*machine.elapsed/machine.queue[0].duration) : 0;
+  return <group>
+    <Bottle position={[-27,-5,-20]} color="#526e80" gas/>
+    <Pipe points={[[-27,3.8,-20],[-27,5,-14],[-23,5,-10]]}/>
+    <mesh position={[-23,5,-10]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[2,2,1,32]}/><meshStandardMaterial color="#eff4f7"/></mesh>
+    <Box position={[-23,5,-9.4]} size={[.2,2.3,.15]} color="#526e80"/>
+    <Pipe points={[[-23,5,-10],[-23,2,-7],[-22,0,-5]]}/>
+    <Box position={[-22,0,-4]} size={[5,3,4]} color="#d2e2e6"/>
+    <Box position={[-22,1.6,-4]} size={[3,.3,2]} color="#497f89"/>
+    <Pipe points={[[-22,0,-2],[-19,0,0],[-13.5,0,0]]} color={st.gas?'#007b79':'#889aa8'}/>
+    <Box position={[-12,0,0]} size={[3,2,2]} color={st.gas?'#007b79':'#7e929f'}/>
+    <Box position={[-12,1.7+travel,0]} size={[2,.7,.7]} color={st.gas?'#007b79':'#a9b8c2'}/>
+    <Pipe points={[[-10.5,0,0],[-5,0,0],[0,0,0]]} color={st.gas?'#007b79':'#889aa8'}/>
+    <mesh><sphereGeometry args={[.9,20,16]}/><meshStandardMaterial color={st.gas?'#007b79':'#acbdc8'}/></mesh>
+    {labels&&<>
+      <Label scale={labelScale} position={[-33,3,-24]}>{machine.config.gas} cylinder</Label>
+      <Label scale={labelScale} position={[-33,12,-12]}>Pressure regulator · {g.pressure} bar(g)</Label>
+      <Label scale={labelScale} position={[-33,4,-2]}>Gas Flow Controller<br/>Q_g = {g.flow} μL/s</Label>
+      <Label scale={labelScale} position={[-14,5,8]}>Fast solenoid valve · {st.gas?'OPEN':'CLOSED'}<br/>t_g = {(gasCalculation(g).seconds*1000).toFixed(1)} ms</Label>
+      <Label scale={labelScale} position={[8,3,1]}>T-junction / phase-switch junction</Label>
+    </>}
+  </group>;
+}
+export function GasInjectionHardware({machine,labels}:{machine:Machine;labels:boolean}) {
+  return <group position={deliveryInlet(machine.config)}><GasInjectionParts machine={machine} labels={labels} labelScale={1.4}/></group>;
 }
 export function WasteReservoir({ machine,labels,labelScale=1.4 }: { machine:Machine;labels:boolean;labelScale?:number }) {
   const [x]=wastePosition(machine.config);

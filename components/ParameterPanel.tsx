@@ -1,8 +1,7 @@
 'use client';
 import { Config, DESIGN, geometryCheck, roundedArea, segmentLength } from '@/lib/geometry';
-const fields: {key: Exclude<keyof Config,'gas'>;label:string;unit:string;min:number;max:number;step:number}[] = [
+const fields: {key: Exclude<keyof Config,'gas'|'gasControl'>;label:string;unit:string;min:number;max:number;step:number}[] = [
   {key:'volume',label:'Usable dose / well',unit:'μL',min:1,max:250,step:1},
-  {key:'gasVolume',label:'Separating gas gap',unit:'μL',min:1,max:100,step:1},
   {key:'flowRate',label:'Dosing flow rate',unit:'μL/s',min:1,max:200,step:1},
   {key:'travelSpeed',label:'Robot travel speed',unit:'mm/s',min:1,max:100,step:1},
   {key:'width',label:'Well internal width',unit:'mm',min:2,max:14,step:.5},
@@ -19,7 +18,6 @@ export default function ParameterPanel({ config,change,locked }: { config:Config
     <p className="panel-copy">Visualization defaults only. Editing parameters resets the empty instrument. Reset first to change a loaded configuration.</p>
     <fieldset disabled={locked} className="parameter-fields">
       {fields.map(f=><label key={f.key}><span>{f.label}</span><div><input type="number" aria-label={f.label} value={config[f.key]} min={f.min} max={f.max} step={f.step} onChange={e=>{const n=e.target.valueAsNumber;if(Number.isFinite(n)) change({...config,[f.key]:Math.max(f.min,Math.min(f.max,f.key==='count'?Math.round(n):n))});}}/><small>{f.unit}</small></div></label>)}
-      <label><span>Gas type</span><select value={config.gas} onChange={e=>change({...config,gas:e.target.value as Config['gas']})}><option>Ar</option><option>N2</option><option>Air</option></select></label>
     </fieldset>
     {locked&&<p className="note">Parameters locked during operation or while wells / line contain liquid.</p>}
     <div className={`geometry-card ${check.errors.length?'invalid':''}`}><h3>{check.errors.length?'⚠ Geometry warning':'✓ Closure geometry valid'}</h3>
@@ -28,9 +26,9 @@ export default function ParameterPanel({ config,change,locked }: { config:Config
         <div><dt>Closed liquid height</dt><dd>{check.heights[0].toFixed(2)} mm</dd></div>
         <div><dt>Remaining headspace</dt><dd>{check.headspace.toFixed(2)} mm</dd></div>
         <div><dt>Derived protrusion extension</dt><dd>{check.postLength.toFixed(2)} mm</dd></div>
-        <div><dt>Usable slug length · Ø 1 mm ID</dt><dd>{segmentLength(config.volume).toFixed(1)} mm</dd></div>
+        <div><dt>Usable slug length · selected channel</dt><dd>{segmentLength(config.volume,config).toFixed(1)} mm</dd></div>
       </dl>}
     </div>
-    <p className="footnote">1 μL = 1 mm³. Rounded footprint area and submerged protrusion displacement determine liquid height by numerical volume balance. Wall thickness: 2 mm. Boundary discard: {DESIGN.boundaryVolume} μL on each side of a gas gap. Gas volumes are conceptual at local line conditions; compressibility is not modeled.</p>
+    <p className="footnote">Gas geometry, pressure, flow and valve timing are editable in Gas Gap Control below the delivery model. 1 μL = 1 mm³. Rounded footprint area and submerged protrusion displacement determine liquid height by numerical volume balance. Wall thickness: 2 mm. Boundary discard: {DESIGN.boundaryVolume} μL on each side of a gas gap. Gas volumes are conceptual at local line conditions; compressibility is not modeled.</p>
   </div>;
 }

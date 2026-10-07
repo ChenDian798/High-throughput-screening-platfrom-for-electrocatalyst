@@ -4,11 +4,12 @@ import { geometryCheck } from '@/lib/geometry';
 export default function ControlPanel({ machine,act,pause,reset }: { machine:Machine;act:(action:Action)=>void;pause:()=>void;reset:()=>void }) {
   const st=status(machine),check=geometryCheck(machine.config,machine.fills);
   return <div className="control-panel">
-    <div className="control-intro"><span className={`status-dot ${machine.queue.length&&!machine.paused?'live':''}`}/><b>{machine.paused?'Sequence paused':machine.queue[0]?.name??(machine.lid===0?'Contact established · sequence complete':'Ready for loading')}</b><span className="micro">IDEALIZED · {8}× TIME</span></div>
+    <div className="control-intro"><span className={`status-dot ${machine.queue.length&&!machine.paused?'live':''}`}/><b>{machine.paused?'Sequence paused':machine.queue[0]?.name??(machine.lid===0?'Contact established · sequence complete':'Ready for loading')}</b><span className="micro">IDEALIZED · LIQUID / ROBOT 8× · TIMED GAS 1×</span></div>
     <button className="primary run" disabled={!!disabledReason(machine,'full')} title={disabledReason(machine,'full')??''} onClick={()=>act('full')}><span>▶</span> Run Full Sequence <span>→</span></button>
     <div className="button-grid">{ACTIONS.filter(a=>a.id!=='full').map(a=><button key={a.id} disabled={!!disabledReason(machine,a.id)} title={disabledReason(machine,a.id)??a.label} onClick={()=>act(a.id)}>{a.label}</button>)}</div>
+    <button className="transport-button" disabled={!!disabledReason(machine,'transport')} title={disabledReason(machine,'transport')??''} onClick={()=>act('transport')}>Transport Train</button>
     <div className="button-grid secondary-actions"><button onClick={pause} disabled={!machine.queue.length}>{machine.paused?'▶ Resume':'Ⅱ Pause'}</button><button onClick={reset}>↺ Reset visualization</button></div>
-    <p className="footnote">Disabled controls expose their interlock reason on hover. Flush cleans the delivery tube and nozzle only. Reset is a visualization reset, not physical cleaning.</p>
+    <p className="footnote">Load Segmented Train generates the train; Transport Train then advances it to the outlet. Run Full Sequence performs both before dispensing. Gas Gap Control below contains timing and calibration. Flush cleans the delivery tube and nozzle only. Reset is a visualization reset, not physical cleaning.</p>
     <h3>Live instrument state</h3>
     <dl className="status-grid">
       {[

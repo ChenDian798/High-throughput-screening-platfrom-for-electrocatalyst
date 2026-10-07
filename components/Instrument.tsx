@@ -2,7 +2,8 @@
 import dynamic from 'next/dynamic';
 import { useEffect, useReducer, useState } from 'react';
 import { Config, DEFAULTS, DESIGN, geometryCheck } from '@/lib/geometry';
-import { Action, Machine, initial, request, status, tick } from '@/lib/machine';
+import { Action, Machine, calibrate, initial, request, status, tick } from '@/lib/machine';
+import GasGapControl from './GasGapControl';
 import type { ViewSettings } from './Scene';
 import FluidicSchematic from './FluidicSchematic';
 import CombinedOverview from './CombinedOverview';
@@ -11,9 +12,10 @@ import ParameterPanel from './ParameterPanel';
 import DesignExplanationPanel from './DesignExplanationPanel';
 import SequenceTimeline from './SequenceTimeline';
 const Scene=dynamic(()=>import('./Scene'),{ssr:false,loading:()=> <div className="scene-loading">Initializing instrument geometry…</div>});
-type Event={type:'tick';dt:number}|{type:'action';action:Action}|{type:'pause'}|{type:'reset'}|{type:'config';config:Config};
+type Event={type:'tick';dt:number}|{type:'action';action:Action}|{type:'pause'}|{type:'reset'}|{type:'config';config:Config}|{type:'calibrate';measured:number};
 function reducer(s:Machine,e:Event):Machine {
-  if(e.type==='tick') return tick(s,e.dt);
+  if(e.type==='tick') return tick(s,e.dt*(s.queue[0]?.kind==='gas'?1:DESIGN.timeScale));
+  if(e.type==='calibrate') return calibrate(s,e.measured);
   if(e.type==='action') return request(s,e.action);
   if(e.type==='pause') return {...s,paused:!s.paused,log:[...s.log,s.paused?'Resumed synchronized clock.':'Paused. Flow stopped; anti-drip closed.'].slice(-60)};
   if(e.type==='config') return initial(e.config);
@@ -28,7 +30,7 @@ export default function Instrument() {
   useEffect(()=>{
     if(!active) return;
     let frame=0,last=performance.now();
-    const advance=(now:number)=>{dispatch({type:'tick',dt:Math.min(.1,(now-last)/1000)*DESIGN.timeScale});last=now;frame=requestAnimationFrame(advance);};
+    const advance=(now:number)=>{dispatch({type:'tick',dt:Math.min(.1,(now-last)/1000)});last=now;frame=requestAnimationFrame(advance);};
     frame=requestAnimationFrame(advance); return ()=>cancelAnimationFrame(frame);
   },[active]);
   const st=status(machine),check=geometryCheck(machine.config,machine.fills);
@@ -56,11 +58,11 @@ export default function Instrument() {
         <div className="contact-strip"><div><span>FLUIDIC ISOLATION</span><b>Solid walls · no connecting channels</b></div><div><span>ELECTRICAL CONNECTION</span><b>One WE plate + one CE assembly</b></div><div><span>HEADSPACE AT CLOSURE</span><b>{check.errors.length?'Await valid fills':`${check.headspace.toFixed(2)} mm remaining`}</b></div></div>
       </section>
       <aside className="panel sidebar"><div className="tabs" role="tablist" aria-label="Instrument panels">{['Operate','Parameters','Design notes'].map(t=><button role="tab" aria-selected={tab===t} className={tab===t?'selected':''} key={t} onClick={()=>setTab(t)}>{t}</button>)}</div><div className="sidebar-content" role="tabpanel">
-        {tab==='Operate'?<ControlPanel machine={machine} act={action=>dispatch({type:'action',action})} pause={()=>dispatch({type:'pause'})} reset={()=>dispatch({type:'reset'})}/>:tab==='Parameters'?<ParameterPanel config={machine.config} locked={machine.queue.length>0||machine.loaded||machine.fills.some(v=>v>0)||machine.lid!==1} change={config=>dispatch({type:'config',config})}/>:<DesignExplanationPanel/>}
+        {tab==='Operate'?<ControlPanel machine={machine} act={action=>dispatch({type:'action',action})} pause={()=>dispatch({type:'pause'})} reset={()=>dispatch({type:'reset'})}/>:tab==='Parameters'?<ParameterPanel config={machine.config} locked={machine.queue.length>0||machine.segments.length>0||machine.loaded||machine.fills.some(v=>v>0)||machine.lid!==1} change={config=>dispatch({type:'config',config})}/>:<DesignExplanationPanel/>}
       </div></aside>
     </div>
     {targetCheck.errors.length>0&&<div className="geometry-alert" role="alert"><b>Geometry warning · loading / closure blocked</b> {targetCheck.errors.join(' ')}</div>}
-    <FluidicSchematic machine={machine}/><CombinedOverview machine={machine}/><SequenceTimeline machine={machine}/>
+    <FluidicSchematic machine={machine}/><GasGapControl machine={machine} act={action=>dispatch({type:'action',action})} change={config=>dispatch({type:'config',config})} calibration={measured=>dispatch({type:'calibrate',measured})} pause={()=>dispatch({type:'pause'})} reset={()=>dispatch({type:'reset'})}/><CombinedOverview machine={machine}/><SequenceTimeline machine={machine}/>
     <footer><p><b>Shared counter-electrode assembly with one immersed protrusion per well.</b><br/>Shared terminal voltage does not imply equal chamber currents or independent working-electrode potential control.</p><p>Idealized synchronized sequence. Real operation requires calibration and segment tracking;<br/>the animation is not a validated control algorithm. No electrochemical reaction is simulated.</p></footer>
     <span className="sr-only">Flow {st.flowing?'MOVING':'STOPPED'}</span>
   </main>;

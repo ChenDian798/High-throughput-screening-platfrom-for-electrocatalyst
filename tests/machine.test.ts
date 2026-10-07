@@ -31,7 +31,7 @@ test('full sequence maintains station, flow, collision and volume invariants',()
         assert.ok(Math.abs(volume-v)<1e-6);assert.ok(h<p.depth);assert.ok(tip>0);
       });
     }
-    if(st.gas) {assert.equal(step.kind,'load');assert.equal(step.segment?.kind,p.gas);assert.equal(st.pump,false);}
+    if(st.gas) {assert.equal(step.kind,'gas');assert.equal(step.segment?.kind,p.gas);assert.equal(st.pump,false);assert.equal(s.station,'Waste');}
   });
   assert.equal(visits.size,3);assert.ok(lowering);assert.deepEqual(s.fills,[80,80,80]);assert.equal(s.lid,0);assert.equal(s.station,'Park');assert.equal(s.segments.length,0);
   assert.equal(status(s).flowing,false);assert.ok(Math.abs(s.wasteVolume-16)<1e-6);
@@ -39,6 +39,7 @@ test('full sequence maintains station, flow, collision and volume invariants',()
 test('manual order, closure envelope, gap and flush interlocks',()=>{
   let s=initial(); assert.ok(disabledReason(s,'a'));assert.ok(disabledReason(s,'lower'));assert.ok(disabledReason(s,'gap'));
   s=finish(request(s,'load'));assert.equal(s.segments[0].kind,'A');assert.ok(disabledReason(s,'b'));
+  assert.ok(disabledReason(s,'a'));s=finish(request(s,'transport'));
   s=finish(request(s,'a'));assert.equal(s.fills[0],80);assert.ok(disabledReason(s,'b'));assert.ok(disabledReason(s,'flush'));
   s=finish(request(s,'gap'));assert.equal(s.station,'Waste');assert.equal(s.segments[0].kind,'B');
   s=finish(request(s,'b'));s=finish(request(s,'gap'));s=finish(request(s,'c'));
