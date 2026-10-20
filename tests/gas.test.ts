@@ -27,7 +27,7 @@ test('a timed gap grows at the junction, closes at t_g, and pause freezes inject
   const paused={...s,paused:true};assert.strictEqual(tick(paused,10),paused);assert.equal(status(paused).gas,false);
   s=tick({...paused,paused:false},.25);
   assert.equal(status(s).gas,false);assert.equal(s.segments[0].volume,20);
-  assert.equal(s.lastGasInjection?.seconds,.5);assert.deepEqual(s.fills,[0,0,0]);
+  assert.equal(s.lastGasInjection?.seconds,.5);assert.deepEqual(s.fills,Array(6).fill(0));
   assert.ok(disabledReason(finish(s),'transport'));assert.ok(disabledReason(finish(s),'generate'));
   const park=finish(request(initial(),'park'));assert.ok(disabledReason(park,'insertGas'));
 });
@@ -39,7 +39,7 @@ test('generation and transport are separate; train order, volumes and no overlap
     if(s.queue[0].kind==='stop'||s.queue[0].kind==='select') assert.equal(st.flowing,false);
     s=tick(s,.01);
   }
-  assert.ok(s.loaded);assert.equal(s.transported,false);assert.equal(s.transport,0);assert.deepEqual(s.fills,[0,0,0]);
+  assert.ok(s.loaded);assert.equal(s.transported,false);assert.equal(s.transport,0);assert.deepEqual(s.fills,Array(6).fill(0));
   assert.deepEqual(s.segments.map(seg=>seg.kind),['A','boundary','Ar','boundary','B','boundary','Ar','boundary','C']);
   const before=segmentLayout(s),volumes=s.segments.map(seg=>seg.volume);
   assert.ok(before[0].end<1);assert.ok(before[0].start>before.at(-1)!.end);
@@ -57,7 +57,7 @@ test('calibration uses completed test conditions, never fabricates measured data
   assert.ok(Math.abs(s.config.gasControl.calibrationFactor!-.8)<1e-10);
   assert.ok(Math.abs(gasCalculation(s.config.gasControl).corrected!-predicted*.8)<1e-10);
   assert.equal(s.segments[0].volume,20);assert.equal(s.lastGasInjection!.measured,predicted*.8);
-  s=finish(request(s,'flush'));assert.equal(s.segments.length,0);assert.deepEqual(s.fills,[0,0,0]);
+  s=finish(request(s,'flush'));assert.equal(s.segments.length,0);assert.deepEqual(s.fills,Array(6).fill(0));
 });
 
 test('segment path coordinates remain within spline bounds during fractional creation and transport',()=>{

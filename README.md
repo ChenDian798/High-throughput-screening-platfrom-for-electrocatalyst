@@ -1,4 +1,6 @@
-# Robotic Single-Line Loading & Shared-Electrode Reactor
+# Robotic Single-Line Loading & Sealed Legion Cell Array
+
+The reactor is a 2 × 3 excerpt of the Legion electrochemical cell array (Gerroll, Kulesa, Ault & Baker, *ACS Meas. Sci. Au* 2023, 3, 371–379, [doi:10.1021/acsmeasuresciau.3c00022](https://doi.org/10.1021/acsmeasuresciau.3c00022)), with a fixed septum cap on each cell in place of Legion's open tops. Each column receives one formulation (A, B, C) in both rows; row R1 runs at E₁ and row R2 at E₂.
 
 A complete interactive Next.js / TypeScript / React instrument prototype. The code generates all geometry with Three.js, React Three Fiber and Drei; the fluidic schematic is SVG. Tailwind CSS is configured with a small instrument stylesheet. No downloaded 3D assets, backend, API keys or external runtime services are required.
 
@@ -33,13 +35,13 @@ Alternatively, from this directory run `npx vercel` and follow the project promp
 
 ## Operating the prototype
 
-- **Run Full Sequence** generates and then transports the train, loads each active well, discharges each intervening boundary/gas group at waste, parks the nozzle, and lowers the lid to establish electrode contact. It stops there.
+- **Run Full Sequence** generates and then transports the train, fills R1 and R2 of each active column through their septa, discharges each intervening boundary/gas group at waste, parks the nozzle, and applies E₁ to row R1 and E₂ to row R2 (one channel per cell). It stops there; **Cell Outputs Off** switches every channel off.
 - **Load Segmented Train** and **Run Automatic Sequence** perform generation only. **Transport Train** separately advances the prepared train toward the outlet. Manual well dispensing is blocked until transport completes. **Insert Gas Gap** runs one timed calibration injection at waste, gradually forming a gas segment at the junction; flush/reset this test before generating a full train.
 - Manual controls enforce the same station, ordering and geometry interlocks. **Move to Waste / Cleaning** provides access to flushing after C or after parking.
 - **Pause** freezes the shared clock, stops pump/gas/flow and closes the explicit anti-drip outlet. **Resume** continues the same stage. Pausing is an idealized visualization behavior, not a validated gas/pump control procedure.
-- **Flush Delivery Line** removes the modeled train and cleans the tube/nozzle at waste. It preserves every well's liquid volume. **Reset** empties the visualization only, raises the lid and returns the nozzle to waste; it is not a physical cleaning procedure.
-- Parameters can be edited only on the empty raised instrument. Reset before editing a loaded instrument. The active well count is limited to 1–3 because this architecture has three formulations. With fewer wells, the unused sequence stages are dimmed.
-- Orbit with left drag, zoom with the wheel and pan with right drag. Use view buttons, exploded inspection, a longitudinal cross-section, component visibility, opacity and dimensions. Exploded offsets and cutaway visibility do not alter the physical state or interlocks.
+- **Flush Delivery Line** removes the modeled train and cleans the tube/nozzle at waste. It preserves every cell's liquid volume. **Reset** empties the visualization only, switches outputs off and returns the nozzle to waste; it is not a physical cleaning procedure.
+- Fluidic and robot operations are blocked while cell outputs are on. Parameters can be edited only on the empty instrument with outputs off. Reset before editing a loaded instrument. Active columns are limited to 1–3 (always × 2 rows) because there are three formulations. With fewer columns, the unused sequence stages are dimmed.
+- Orbit with left drag, zoom with the wheel and pan with right drag. Use view buttons, exploded inspection, a cross-section through the R2 cell centres, cap/QRCE and cell-block visibility, opacity and dimensions. Exploded offsets and cutaway visibility do not alter the physical state or interlocks.
 - **01 Instrument workspace** retains the robot and electrode assembly, with the updated gas injection module at the tube inlet, without the upstream precursor reservoirs/pump hardware. **02 Single-line delivery** defaults to a dedicated 3D model of the reservoirs, selector, dosing pump, gas injection, common tube, nozzle and waste collection, without duplicating the reactor or gantry. Switch to **2D schematic** for the connection diagram. **03 Combined instrument overview** separately shows the complete connected system. All views share the same timed valve, gas settings and segment layout. Reservoir feeds terminate at the selector, which connects through the pump and controlled gas junction to the single nozzle tube. A separate drain connects the waste/cleaning station to a waste reservoir, physically distinct from safe park. Components are conceptual, not validated commercial hardware or fabrication dimensions.
 - Presentation mode enlarges the model and hides the side panel. Exit it to operate the controls.
 
@@ -57,48 +59,47 @@ For calibration, inject a gap, measure its length experimentally, enter the meas
 
 **Gas compressibility, backpressure, valve response time and tubing compliance can cause the actual gas-gap length to deviate from the ideal calculated value. Experimental calibration is required.** Pressure, flow, timing, area, downstream pressure, compressibility, compliance, valve response, surface tension and wettability all matter. Valve time alone does not determine the final length.
 
-The sequence uses usable A/B/C portions with a 4 μL sacrificial boundary on each side of each gas gap. These boundary volumes are not validated. Gas-gap volume is specified at conceptual local line conditions; compressibility, residual wall films and gas expansion are not modeled. Gas valves open only during gas staging, after liquid pump delivery pauses. During travel, all flow stops and an explicit anti-drip outlet closes. No-contact nozzle dispensing occurs above the rim. A front-mounted Z carriage and cantilever nozzle arm clear the raised lid; vertical lift precedes every lateral move. The nozzle parks outside the lid footprint before closure.
+The sequence uses usable A/B/C portions with a 4 μL sacrificial boundary on each side of each gas gap. These boundary volumes are not validated. Gas-gap volume is specified at conceptual local line conditions; compressibility, residual wall films and gas expansion are not modeled. Gas valves open only during gas staging, after liquid pump delivery pauses. During travel, all flow stops and an explicit anti-drip outlet closes. The nozzle carries a short needle that passes through a cell's septum; the nozzle body stays above the cap and the liquid falls from the needle tip without touching the electrolyte. Vertical lift to a safe height above the caps precedes every lateral move. The nozzle parks clear of the array before potentials are applied.
 
-The lower assembly has rigid support, insulation, one continuous working-electrode floor, individual seals and a genuinely open insulating frame. The upper assembly has a guided rigid lid, insulation, one conductive counter-electrode plate and rounded broad downward protrusions. All posts remain connected to one CE terminal; the lower plate has one WE terminal. Seals, alignment guides, stops, dry-region fasteners and clamp blocks are conceptual geometry.
+The cell array follows Legion's stack, bottom to top: PEEK base, copper contact plate, 3 mm glassy-carbon working-electrode plate (common to every cell), PDMS gasket with one Ø6 mm opening per cell, and a PEEK block with Ø7 mm bores at the 9 mm 96-well pitch, clamped by four corner screws. Each cell has its own Ag quasi-reference counter electrode (QRCE, Ø1 mm wire) wired through a pin header to its own potentiostat channel, as Legion connects its QRCEs to FPGA-controlled 8-channel boards. Legion's cells are open-top; here each bore is closed by a fixed cap with a needle septum, a sealed QRCE feedthrough and a liquid-blocking vent. There is no moving lid and no counter-electrode plate.
 
 Defaults, centralized in `lib/geometry.ts` and `lib/gas.ts`:
 
 | Quantity | Default |
 | --- | --- |
-| Internal well dimensions | 8 × 5 × 4 mm |
-| Wall thickness | 2 mm |
-| Rounded internal corner radius | 0.6 mm |
-| Fill volume | 80 μL / well |
-| Protrusion footprint | 6 × 3 mm, 0.5 mm corner radius |
-| Closed bottom clearance | 1 mm |
+| Cell array | 2 rows × 3 columns, 9 mm pitch |
+| Cell bore / height (WE → cap) | Ø7 mm / 14 mm |
+| Exposed WE (gasket opening) | Ø6 mm, 28.3 mm² |
+| Fill volume | 300 μL / cell (Legion: ≤500 μL, 300 μL typical) |
+| QRCE | Ø1 mm Ag wire, tip 2 mm above the WE |
+| Septum cap | 2.5 mm, one per cell; ≥1 mm headspace kept below it |
+| Row potentials | R1 −0.80 V, R2 −1.20 V vs QRCE (range ±4 V as in Legion) |
 | Gas gap | 20 μL, Ar |
 | Gas flow / valve open time | 40 μL/s / 500 ms |
 | Circular channel ID / regulator pressure | 1 mm / 0.5 bar(g) |
 | Initial calibration | Not calibrated; no measured values |
-| Dosing / travel speed | 80 μL/s / 35 mm/s |
+| Dosing / travel speed | 150 μL/s / 35 mm/s |
 | Animation time scale | Liquid / robot 8×; gas injection 1×; conceptual controller |
 
-The CE underside closes at the well-rim sealing plane. Protrusion extension is **well depth − closed bottom clearance**, not an independent dimension. Numerical bisection solves `V = well area × height − protrusion area × submerged length`, including rounded footprint areas. At defaults the open height is approximately 2.02 mm and the closed height approximately 2.84 mm, leaving about 1.16 mm headspace. The liquid geometry has a hole around submerged posts, conserving liquid volume visually and numerically. Closure is blocked for nonpositive clearance, sidewall interference, nonimmersed posts or less than 0.1 mm headspace. Actual fill volumes are checked again when closure begins.
+Each formulation slug is sized for both cells of its column (2 × 300 μL). Numerical bisection solves `V = bore area × height − wire area × (height − QRCE gap)`. At defaults the liquid height is about 7.92 mm, giving about 5.92 mm QRCE immersion and 6.08 mm headspace. Loading and applying potentials are blocked if a QRCE would be immersed by less than 0.5 mm, if headspace falls below 1 mm, if the bore does not leave a 1 mm wall or is smaller than the gasket opening, or if a potential is outside ±4 V. Actual fills are checked again when potentials are applied.
 
-Solid walls separate wells; no common liquid, overflow or interconnecting channel exists. Individual conceptual vent positions permit displaced air to escape. Vent construction, reaction-gas handling and pressure behavior remain unresolved. This is not a pressure-rated sealed reactor.
+The gasket seals each bore against the WE plate and solid PEEK separates cells; no common liquid or interconnecting channel exists. The vent lets displaced air out while a sealed cell fills; membrane choice, septum reseal and reaction-gas pressure remain unresolved. This is not a pressure-rated reactor.
 
-**Shared counter-electrode assembly with one immersed protrusion per well.**
-
-**Shared terminal voltage does not imply equal chamber currents or independent working-electrode potential control.**
+**Independent cells, shared working electrode.** Each QRCE both sets its cell's potential and carries its current, so potentials are quoted against a quasi-reference and are only as stable as each QRCE.
 
 There is no reaction, electrodeposition kinetics, current-density distribution or reaction-product simulation.
 
 ## Code map
 
 - `lib/machine.ts`: pure deterministic operation queue, interlocks, status, pause-compatible tick and logs. One `requestAnimationFrame` clock in `Instrument.tsx` advances this shared state. Each tick is clamped to the active step duration; leftover wall time is intentionally discarded at a phase boundary to avoid skipped states. Animation speed is illustrative.
-- `lib/geometry.ts`: centralized defaults, rounded areas, numerical liquid height, closure validation and segment lengths.
+- `lib/geometry.ts`: centralized defaults, cell layout (columns × rows), numerical liquid height, cell validation, row potentials and segment lengths.
 - `lib/gas.ts` and `components/GasGapControl.tsx`: gas units/formulas, geometry selection, timed-injection controls, calibration and scientific caveats.
-- `components/Scene.tsx`: procedural `SegmentedDeliveryTube`, `RobotGantry`, `DispensingNozzle`, `WasteStation`, `SharedWorkingElectrode`, `InsulatingWellFrame`, `ProtrudingCounterElectrode`, `GuidedLid` and camera controls.
+- `components/Scene.tsx`: procedural `SegmentedDeliveryTube`, `RobotGantry`, `DispensingNozzle`, `WasteStation`, `LegionStack`, `SeptumCap`, `CellLiquid`, `QRCE`, `PotentiostatBoard` and camera controls.
 - `components/FluidicSchematic.tsx`: SVG schematic, `ReservoirBank` and `GasInjectionModule` driven by the same state.
 - `components/FluidicHardware.tsx` and `FluidicModel.tsx`: procedural reservoirs, selector, dosing pump, shared cylinder/regulator/flow-controller/solenoid/junction module, waste drain and collection reservoir; dedicated 3D delivery canvas. `ModelPrimitives.tsx` shares box geometry and generated label textures with the instrument scene.
 - `components/CombinedOverview.tsx`: separate complete-system view using the same scene geometry and shared machine state.
 - `components/ControlPanel.tsx`, `ParameterPanel.tsx`, `SequenceTimeline.tsx`, `DesignExplanationPanel.tsx`: operating controls, geometry warnings, progression and scientific context.
-- `tests/machine.test.ts`: automatic/manual ordering, station routing, pause, flush preservation, closure displacement, collision-clearance invariants, invalid geometry and well-count/gas combinations.
+- `tests/machine.test.ts`: column-wise R1/R2 dispensing order, septum station routing, output interlocks, pause, flush preservation, wire displacement, invalid geometry/potentials and column-count/gas combinations.
 - `tests/gas.test.ts`: circular/rectangular and time/length calculations, gradual generation, timed closure, pause, non-overlap, separate volume-conserving transport and calibration.
 
 ## Why this architecture?
@@ -106,22 +107,21 @@ There is no reaction, electrodeposition kinetics, current-density distribution o
 | Requirement | Design |
 | --- | --- |
 | One delivery tube for multiple formulations | Shared tube with robot-addressed nozzle |
-| Different compositions in different reaction regions | Physically isolated wells with individual dispensing |
-| Parallel electrode contact | Common lower electrode and upper electrode with immersed protrusions |
-| Contact despite liquid-level variation | Protrusions extend below the surface while retaining bottom clearance |
-| Prevent spreading between wells | Solid insulating sidewalls and individual seals |
+| Same mixture, different potentials | One formulation per column; R1 and R2 driven at E₁ and E₂ |
+| Independent control and readout per cell | One QRCE per cell on its own channel against a common glassy-carbon WE (Legion) |
+| Prevent spreading between cells | PDMS gasket seals each bore against the WE; solid PEEK walls |
+| Sealed cells without a moving lid | Fixed cap per cell: needle septum, sealed QRCE feedthrough, vent membrane |
 | Reduce mixing during transport | Gas-separated segments with boundary portions diverted to waste |
 
 ## Unresolved experimental validation
 
-Residual film and carryover; segment detection and dispensing accuracy; nozzle drips; evaporation in open wells; seal reliability; lid displacement and trapped gas; counter-electrode area and current distribution; reaction-gas management; cleaning wells and electrodes between runs. None is claimed solved by this animation.
+Residual film and carryover; segment detection and dispensing accuracy; septum coring and reseal; vent wetting and reaction-gas pressure; QRCE drift; uncompensated resistance in an undivided two-electrode cell; gasket compression uniformity; cleaning cells, caps and the shared WE between runs. None is claimed solved by this animation.
 
 ## References and their limits
 
-- [Microflu MF-ELFlow](https://www.microflutech.com/microreactor/Electrochemistry.html): compact electrode assemblies and clamped sealing, not an exact model of this design.
+- [Gerroll et al., Legion](https://doi.org/10.1021/acsmeasuresciau.3c00022): source of the cell array and per-cell QRCE channel architecture. Legion's cells are open-top; the septum caps are an addition.
 - [Laudadio et al.](https://doi.org/10.1007/s41981-018-0024-3): shared flat electrodes and insulating flow-defining layers.
-- [Jud et al.](https://doi.org/10.1002/cmtd.202000042): modular layered electrode assembly.
 - [AMPERE-2](https://doi.org/10.1039/D5DD00180C): robotic electrochemistry and bottom-of-well electrodes with seals; a different electrode arrangement.
 - [Kreutzer et al.](https://doi.org/10.1021/ac702143r): liquid-film-related dispersion in gas–liquid segmented transport.
 
-These sources support component principles. They do not validate this complete robot-loaded, protruding-lid design.
+These sources support component principles. They do not validate this complete robot-loaded, septum-sealed design.

@@ -21,7 +21,7 @@ function TimingDiagram({machine}:{machine:Machine}) {
 export default function GasGapControl({machine,act,change,calibration,pause,reset}:{machine:Machine;act:(a:Action)=>void;change:(p:Config)=>void;calibration:(n:number)=>void;pause:()=>void;reset:()=>void}) {
   const [measured,setMeasured]=useState('');
   const g=machine.config.gasControl,c=gasCalculation(g),st=status(machine),sample=machine.lastGasInjection;
-  const locked=machine.queue.length>0||machine.segments.length>0||machine.loaded||machine.fills.some(v=>v>0)||machine.lid!==1;
+  const locked=machine.queue.length>0||machine.segments.length>0||machine.loaded||machine.fills.some(v=>v>0)||machine.outputs;
   const changeGas=(part:Partial<GasSettings>)=>change(withGasControl(machine.config,{...g,...part,calibrationFactor:null}));
   const numberField=(key:'diameter'|'width'|'height'|'flow'|'pressure'|'valveMs'|'targetLength',label:string,unit:string,min:number,step:number)=> <label key={key}><span>{label}</span><div><input type="number" aria-label={label} value={g[key]} min={min} step={step} onChange={e=>{const value=e.target.valueAsNumber;if(Number.isFinite(value)&&value>=min) changeGas({[key]:value});}}/><small>{unit}</small></div></label>;
   const operation=(a:Action,label:string)=><button key={a} disabled={!!disabledReason(machine,a)} title={disabledReason(machine,a)??label} onClick={()=>act(a)}>{label}</button>;
@@ -39,7 +39,7 @@ export default function GasGapControl({machine,act,change,calibration,pause,rese
           {numberField('flow','Gas flow rate Q_g','μL/s',.01,1)}
           {g.mode==='time'?numberField('valveMs','Valve open time t_g','ms',1,10):numberField('targetLength','Target gap length L_g','mm',.01,1)}
         </fieldset>
-        {locked&&<p className="footnote">Settings locked while operating or holding fluid. Reset or flush an empty-well instrument to change the injection setup. Changing settings invalidates the calibration factor.</p>}
+        {locked&&<p className="footnote">Settings locked while operating or holding fluid. Reset or flush an empty-cell instrument to change the injection setup. Changing settings invalidates the calibration factor.</p>}
         {gasError(g)&&<p className="geometry-alert" role="alert">{gasError(g)}</p>}
         <dl className="gas-readings">
           <div><dt>Channel area A_channel</dt><dd>{c.area.toFixed(4)} mm²</dd></div>

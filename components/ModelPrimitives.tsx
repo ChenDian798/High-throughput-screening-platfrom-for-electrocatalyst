@@ -1,9 +1,14 @@
 'use client';
 import { isValidElement, useEffect, useMemo } from 'react';
 import * as THREE from 'three';
-const cut = [new THREE.Plane(new THREE.Vector3(0,0,-1),0)];
+import { DESIGN } from '@/lib/geometry';
+// Section view: cut through the centres of the front (R2) row of cells, keeping everything behind it.
+export const cut = [new THREE.Plane(new THREE.Vector3(0,0,-1),DESIGN.pitch/2)];
 export function Box({ position, size, color='#dde4e9', opacity=1, section=false }: { position: [number,number,number]; size: [number,number,number]; color?: string; opacity?: number; section?: boolean }) {
   return <mesh position={position}><boxGeometry args={size}/><meshStandardMaterial color={color} roughness={.65} metalness={.15} transparent={opacity<1} opacity={opacity} clippingPlanes={section?cut:[]}/></mesh>;
+}
+export function Cylinder({ position, radius, height, color, opacity=1, section=false, metal=.15, segments=32 }: { position: [number,number,number]; radius: number; height: number; color: string; opacity?: number; section?: boolean; metal?: number; segments?: number }) {
+  return <mesh position={position}><cylinderGeometry args={[radius,radius,Math.max(.001,height),segments]}/><meshStandardMaterial color={color} roughness={.55} metalness={metal} transparent={opacity<1} opacity={opacity} depthWrite={opacity>=1} side={THREE.DoubleSide} clippingPlanes={section?cut:[]}/></mesh>;
 }
 export function Label({ position, children, accent=false, scale=1 }: { position: [number,number,number]; children: React.ReactNode; accent?: boolean; scale?:number }) {
   function text(node: React.ReactNode): string {

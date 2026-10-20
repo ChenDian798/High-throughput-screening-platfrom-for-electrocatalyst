@@ -4,7 +4,7 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { Machine, parkPosition, status, wastePosition } from '@/lib/machine';
-import { deliveryInlet } from '@/lib/geometry';
+import { arrayHalfWidth, deliveryInlet } from '@/lib/geometry';
 import { FluidicHardware, WasteReservoir } from './FluidicHardware';
 import { DispensingNozzle, SegmentedDeliveryTube, ViewSettings, WasteStation } from './Scene';
 import { Box, Label } from './ModelPrimitives';
@@ -33,7 +33,7 @@ export default function FluidicModel({ machine,camera,labels }: { machine:Machin
     {labels&&<>
       <Label scale={2} position={[machine.position[0]+5,machine.position[1]+6,machine.position[2]-3]}>Robot-mounted nozzle</Label>
       <Label scale={2} position={[12,p.depth+3,7]}>Outlet destination: {st.station}</Label>
-      <Label scale={2} position={[p.count*(p.width+2)/2+7,0,15]}>Safe park · no waste collection</Label>
+      <Label scale={2} position={[arrayHalfWidth(p)+7,0,15]}>Safe park · no waste collection</Label>
       <Label scale={2} position={[wasteX,-2,4]}>Waste / cleaning station</Label>
     </>}
     <OrbitControls makeDefault target={[-20,11,-18]} minDistance={15} maxDistance={350}/><DeliveryCamera view={view} p={p}/>
